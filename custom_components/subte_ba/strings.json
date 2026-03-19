@@ -6,7 +6,11 @@
         "description": "Ingresá las credenciales de la [API de Transporte del GCBA]({api_url})",
         "data": {
           "client_id": "Client ID",
-          "client_secret": "Client Secret"
+          "client_secret": "Client Secret",
+          "scan_interval": "Intervalo de actualización (segundos)"
+        },
+        "data_description": {
+          "scan_interval": "Mínimo {min_interval}s, máximo {max_interval}s. Se recomiendan 120s para no sobrecargar la API."
         }
       }
     },

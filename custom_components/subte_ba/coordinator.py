@@ -12,6 +12,7 @@ from .const import (
     API_ALERTS,
     CONF_CLIENT_ID,
     CONF_CLIENT_SECRET,
+    CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     LINEAS,
@@ -28,12 +29,13 @@ class SubteCoordinator(DataUpdateCoordinator):
         """Inicializar el coordinator."""
         self.client_id = entry.data[CONF_CLIENT_ID]
         self.client_secret = entry.data[CONF_CLIENT_SECRET]
+        scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
+            update_interval=timedelta(seconds=scan_interval),
         )
 
     async def _async_update_data(self) -> dict:

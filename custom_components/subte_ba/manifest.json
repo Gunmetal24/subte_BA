@@ -1,7 +1,7 @@
 {
   "domain": "subte_ba",
   "name": "Subte Buenos Aires",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "documentation": "https://github.com/tuusuario/subte_ba",
   "issue_tracker": "https://github.com/tuusuario/subte_ba/issues",
   "dependencies": [],

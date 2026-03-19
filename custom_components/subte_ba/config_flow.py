@@ -8,7 +8,16 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 
-from .const import API_ALERTS, CONF_CLIENT_ID, CONF_CLIENT_SECRET, DOMAIN
+from .const import (
+    API_ALERTS,
+    CONF_CLIENT_ID,
+    CONF_CLIENT_SECRET,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+    MAX_SCAN_INTERVAL,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,6 +57,7 @@ class SubteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data={
                             CONF_CLIENT_ID: client_id,
                             CONF_CLIENT_SECRET: client_secret,
+                            CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
                         },
                     )
                 else:
@@ -67,6 +77,10 @@ class SubteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_CLIENT_ID): str,
                 vol.Required(CONF_CLIENT_SECRET): str,
+                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
+                    int,
+                    vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL)
+                ),
             }
         )
 
@@ -75,6 +89,8 @@ class SubteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=schema,
             errors=errors,
             description_placeholders={
-                "api_url": "https://buenosaires.gob.ar/desarrollourbano/transporte/apitransporte"
+                "api_url": "https://buenosaires.gob.ar/desarrollourbano/transporte/apitransporte",
+                "min_interval": str(MIN_SCAN_INTERVAL),
+                "max_interval": str(MAX_SCAN_INTERVAL),
             },
         )
