@@ -3,11 +3,11 @@
 DOMAIN = "subte_ba"
 CONF_CLIENT_ID = "client_id"
 CONF_CLIENT_SECRET = "client_secret"
+CONF_SCAN_INTERVAL = "scan_interval"
 
 DEFAULT_SCAN_INTERVAL = 120  # segundos
 MIN_SCAN_INTERVAL = 30
 MAX_SCAN_INTERVAL = 3600
-CONF_SCAN_INTERVAL = "scan_interval"
 
 API_BASE = "https://apitransporte.buenosaires.gob.ar/subtes"
 API_ALERTS = f"{API_BASE}/serviceAlerts"

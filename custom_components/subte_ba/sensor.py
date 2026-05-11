@@ -29,12 +29,7 @@ async def async_setup_entry(
 class SubteSensor(CoordinatorEntity, SensorEntity):
     """Sensor de estado para una línea de subte."""
 
-    def __init__(
-        self,
-        coordinator: SubteCoordinator,
-        linea_id: str,
-        linea_info: dict,
-    ) -> None:
+    def __init__(self, coordinator: SubteCoordinator, linea_id: str, linea_info: dict) -> None:
         """Inicializar el sensor."""
         super().__init__(coordinator)
         self._linea_id = linea_id
@@ -44,7 +39,7 @@ class SubteSensor(CoordinatorEntity, SensorEntity):
         self._attr_icon = linea_info["icon"]
 
     @property
-    def native_value(self) -> str:
+    def native_value(self) -> str | None:
         """Estado actual de la línea."""
         if self.coordinator.data is None:
             return None
@@ -64,8 +59,8 @@ class SubteSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def available(self) -> bool:
-        """El sensor está disponible si el coordinator tiene datos."""
-        return self.coordinator.last_update_success
+        """Disponible si el coordinator tiene datos (incluso cacheados)."""
+        return self.coordinator.data is not None
 
     @property
     def device_info(self):

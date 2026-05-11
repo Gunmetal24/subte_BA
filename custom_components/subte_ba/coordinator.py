@@ -21,6 +21,9 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Cuántos errores consecutivos tolerar antes de marcar unavailable
+MAX_CONSECUTIVE_ERRORS = 3
+
 
 class SubteCoordinator(DataUpdateCoordinator):
     """Coordina el polling de la API del GCBA."""
@@ -30,6 +33,9 @@ class SubteCoordinator(DataUpdateCoordinator):
         self.client_id = entry.data[CONF_CLIENT_ID]
         self.client_secret = entry.data[CONF_CLIENT_SECRET]
         scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+
+        self._last_known_data: dict | None = None
+        self._consecutive_errors: int = 0
 
         super().__init__(
             hass,
@@ -41,8 +47,48 @@ class SubteCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict:
         """Obtener datos de la API."""
         try:
-            return await self.hass.async_add_executor_job(self._fetch_alerts)
+            data = await self.hass.async_add_executor_job(self._fetch_alerts)
+            # Éxito: resetear contador y guardar último valor conocido
+            self._consecutive_errors = 0
+            self._last_known_data = data
+            return data
+
+        except requests.exceptions.HTTPError as err:
+            self._consecutive_errors += 1
+            status = err.response.status_code if err.response is not None else "?"
+            _LOGGER.warning(
+                "Error HTTP %s de la API del GCBA (intento %d/%d). %s",
+                status,
+                self._consecutive_errors,
+                MAX_CONSECUTIVE_ERRORS,
+                "Usando último valor conocido." if self._last_known_data else "Sin datos previos.",
+            )
+            if self._last_known_data and self._consecutive_errors <= MAX_CONSECUTIVE_ERRORS:
+                return self._last_known_data
+            raise UpdateFailed(f"Error HTTP {status} tras {self._consecutive_errors} intentos.") from err
+
+        except requests.exceptions.Timeout:
+            self._consecutive_errors += 1
+            _LOGGER.warning(
+                "Timeout al consultar la API (intento %d/%d). %s",
+                self._consecutive_errors,
+                MAX_CONSECUTIVE_ERRORS,
+                "Usando último valor conocido." if self._last_known_data else "Sin datos previos.",
+            )
+            if self._last_known_data and self._consecutive_errors <= MAX_CONSECUTIVE_ERRORS:
+                return self._last_known_data
+            raise UpdateFailed(f"Timeout tras {self._consecutive_errors} intentos consecutivos.") from None
+
         except Exception as err:
+            self._consecutive_errors += 1
+            _LOGGER.warning(
+                "Error inesperado al consultar la API (intento %d/%d): %s",
+                self._consecutive_errors,
+                MAX_CONSECUTIVE_ERRORS,
+                err,
+            )
+            if self._last_known_data and self._consecutive_errors <= MAX_CONSECUTIVE_ERRORS:
+                return self._last_known_data
             raise UpdateFailed(f"Error al consultar la API: {err}") from err
 
     def _fetch_alerts(self) -> dict:

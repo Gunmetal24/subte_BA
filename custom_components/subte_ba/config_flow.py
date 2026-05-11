@@ -6,7 +6,6 @@ import logging
 import requests
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
 
 from .const import (
     API_ALERTS,
@@ -28,7 +27,6 @@ def validate_credentials(client_id: str, client_secret: str) -> bool:
     response = requests.get(API_ALERTS, params=params, timeout=10)
     response.raise_for_status()
     data = response.json()
-    # Si devuelve un dict con 'entity' (aunque sea vacío), las credenciales son válidas
     return isinstance(data, dict) and "entity" in data
 
 
@@ -38,7 +36,7 @@ class SubteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        """Primer paso: pedir client_id y client_secret."""
+        """Primer paso: pedir credenciales e intervalo."""
         errors = {}
 
         if user_input is not None:
@@ -78,8 +76,7 @@ class SubteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_CLIENT_ID): str,
                 vol.Required(CONF_CLIENT_SECRET): str,
                 vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
-                    int,
-                    vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL)
+                    int, vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL)
                 ),
             }
         )
