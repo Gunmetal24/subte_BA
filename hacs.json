@@ -1,1 +1,8 @@
-{"name": "Subte Buenos Aires", "content_in_root": false, "render_readme": true, "homeassistant": "2023.1.0"}
+{
+  "name": "Subte Buenos Aires",
+  "content_in_root": false,
+  "render_readme": true,
+  "homeassistant": "2023.1.0",
+  "filename": "subte_ba.zip",
+  "logo": "https://raw.githubusercontent.com/Gunmetal24/subte_BA/main/subte_logo.png"
+}
