@@ -6,7 +6,11 @@ import logging
 import requests
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig, SelectSelectorMode
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (
     API_ALERTS,
@@ -25,7 +29,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Opciones para el selector: lista de "Línea X - Estación"
 ESTACION_OPTIONS = list(ESTACIONES_SELECTOR.keys())
 
 
@@ -46,9 +49,14 @@ class SubteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             client_id = user_input[CONF_CLIENT_ID].strip()
             client_secret = user_input[CONF_CLIENT_SECRET].strip()
-            estacion_label = user_input.get(CONF_ESTACION, "")
-            # Convertir "Línea A - Puán" → "Puán"
-            estacion_nombre = ESTACIONES_SELECTOR.get(estacion_label) if estacion_label else None
+
+            # Convertir lista de "Línea A - Puán" → ["Puán", ...]
+            estaciones_labels = user_input.get(CONF_ESTACION, [])
+            estaciones_nombres = [
+                ESTACIONES_SELECTOR[label]
+                for label in estaciones_labels
+                if label in ESTACIONES_SELECTOR
+            ]
 
             try:
                 valid = await self.hass.async_add_executor_job(
@@ -64,7 +72,7 @@ class SubteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             CONF_CLIENT_SECRET: client_secret,
                             CONF_SCAN_INTERVAL_ALERTS: user_input[CONF_SCAN_INTERVAL_ALERTS],
                             CONF_SCAN_INTERVAL_FORECAST: user_input[CONF_SCAN_INTERVAL_FORECAST],
-                            CONF_ESTACION: estacion_nombre,
+                            CONF_ESTACION: estaciones_nombres,
                         },
                     )
                 else:
@@ -86,11 +94,11 @@ class SubteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(CONF_SCAN_INTERVAL_FORECAST, default=DEFAULT_SCAN_INTERVAL_FORECAST): vol.All(
                 int, vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL)
             ),
-            vol.Optional(CONF_ESTACION, default=""): SelectSelector(
+            vol.Optional(CONF_ESTACION, default=[]): SelectSelector(
                 SelectSelectorConfig(
-                    options=[""] + ESTACION_OPTIONS,
+                    options=ESTACION_OPTIONS,
+                    multiple=True,
                     mode=SelectSelectorMode.DROPDOWN,
-                    translation_key="estacion",
                 )
             ),
         })

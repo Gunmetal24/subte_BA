@@ -36,16 +36,23 @@ async def async_setup_entry(
     coordinators = hass.data[DOMAIN][entry.entry_id]
     alerts_coord: AlertsCoordinator = coordinators["alerts"]
     forecast_coord: ForecastCoordinator = coordinators["forecast"]
-    estacion = entry.data.get(CONF_ESTACION)
 
-    entities = [
+    # Compatibilidad: puede ser lista (v1.0.7+) o string (versiones anteriores)
+    estaciones_raw = entry.data.get(CONF_ESTACION, [])
+    if isinstance(estaciones_raw, str):
+        estaciones = [estaciones_raw] if estaciones_raw else []
+    else:
+        estaciones = estaciones_raw or []
+
+    entities: list = [
         SubteAlertSensor(alerts_coord, linea_id, linea_info)
         for linea_id, linea_info in LINEAS.items()
     ]
 
-    if estacion:
-        entities.append(SubteForecastSensor(forecast_coord, estacion, DIRECTION_CENTRO, "centro"))
-        entities.append(SubteForecastSensor(forecast_coord, estacion, DIRECTION_CABECERA, "cabecera"))
+    for estacion in estaciones:
+        if estacion:
+            entities.append(SubteForecastSensor(forecast_coord, estacion, DIRECTION_CENTRO, "Centro"))
+            entities.append(SubteForecastSensor(forecast_coord, estacion, DIRECTION_CABECERA, "Cabecera"))
 
     async_add_entities(entities)
 
@@ -56,10 +63,10 @@ class SubteAlertSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator: AlertsCoordinator, linea_id: str, linea_info: dict):
         super().__init__(coordinator)
         self._linea_id = linea_id
+        self._linea_info = linea_info
         self._attr_name = linea_info["nombre"]
         self._attr_unique_id = f"subte_ba_{linea_id.lower()}"
         self._attr_icon = linea_info["icon"]
-        self._linea_info = linea_info
 
     @property
     def native_value(self):
@@ -87,7 +94,7 @@ class SubteAlertSensor(CoordinatorEntity, SensorEntity):
 
 
 class SubteForecastSensor(CoordinatorEntity, SensorEntity):
-    """Sensor de próximo tren en una dirección."""
+    """Sensor de próximo tren. Mantiene último valor conocido fuera de horario."""
 
     _attr_native_unit_of_measurement = "min"
     _attr_device_class = SensorDeviceClass.DURATION
@@ -103,14 +110,17 @@ class SubteForecastSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._estacion = estacion
         self._direction_id = direction_id
-        self._direccion_label = direccion_label  # "centro" o "cabecera"
+        self._direccion_label = direccion_label
 
         estacion_slug = estacion.lower().replace(" ", "_")
-        self._attr_name = f"{estacion} → {direccion_label.capitalize()}"
-        self._attr_unique_id = f"subte_ba_forecast_{estacion_slug}_{direccion_label}"
+        self._attr_name = f"{estacion} → {direccion_label}"
+        self._attr_unique_id = f"subte_ba_forecast_{estacion_slug}_{direccion_label.lower()}"
+
+        # Último valor conocido
+        self._last_value: int | None = None
+        self._last_attrs: dict = {}
 
     def _get_proximo(self) -> dict | None:
-        """Obtener el próximo tren en esta dirección."""
         if not self.coordinator.data:
             return None
 
@@ -121,16 +131,12 @@ class SubteForecastSensor(CoordinatorEntity, SensorEntity):
             linea = entity.get("Linea", {})
             if linea.get("Direction_ID") != self._direction_id:
                 continue
-
             route = linea.get("Route_Id", "")
-
             for est in linea.get("Estaciones", []):
                 if est["stop_name"].lower() != self._estacion.lower():
                     continue
-
                 arr_time = est["arrival"]["time"]
                 minutos = round((arr_time - ahora) / 60)
-
                 if minutos >= 0:
                     candidatos.append({
                         "linea": route,
@@ -140,23 +146,25 @@ class SubteForecastSensor(CoordinatorEntity, SensorEntity):
 
         if not candidatos:
             return None
-
         return min(candidatos, key=lambda x: x["minutos"])
 
     @property
     def native_value(self):
         proximo = self._get_proximo()
-        return proximo["minutos"] if proximo else None
+        if proximo is not None:
+            self._last_value = proximo["minutos"]
+            return proximo["minutos"]
+        return self._last_value
 
     @property
     def extra_state_attributes(self):
         proximo = self._get_proximo()
-        if not proximo:
-            return {}
-        return {
-            "linea": proximo["linea"],
-            "hora_llegada": proximo["hora_llegada"],
-        }
+        if proximo is not None:
+            self._last_attrs = {
+                "linea": proximo["linea"],
+                "hora_llegada": proximo["hora_llegada"],
+            }
+        return self._last_attrs
 
     @property
     def available(self):

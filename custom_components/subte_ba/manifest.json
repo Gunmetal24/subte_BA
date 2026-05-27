@@ -1,7 +1,7 @@
 {
   "domain": "subte_ba",
   "name": "Subte Buenos Aires",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "documentation": "https://github.com/Gunmetal24/subte_BA",
   "issue_tracker": "https://github.com/Gunmetal24/subte_BA/issues",
   "dependencies": [],
