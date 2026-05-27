@@ -7,17 +7,21 @@
         "data": {
           "client_id": "Client ID",
           "client_secret": "Client Secret",
-          "scan_interval": "Intervalo de actualización (segundos)"
+          "scan_interval_alerts": "Intervalo alertas de servicio (segundos)",
+          "scan_interval_forecast": "Intervalo próximos trenes (segundos)",
+          "estacion": "Estación para próximo tren (opcional)"
         },
         "data_description": {
-          "scan_interval": "Mínimo {min_interval}s, máximo {max_interval}s. Se recomiendan 120s."
+          "scan_interval_alerts": "Recomendado: 120s. Mínimo {min_interval}s.",
+          "scan_interval_forecast": "Recomendado: 30s. Mínimo {min_interval}s.",
+          "estacion": "Ej: Puán, Plaza de Mayo, Palermo. Crea 2 sensores: → Centro y → Cabecera."
         }
       }
     },
     "error": {
-      "cannot_connect": "No se pudo conectar a la API. Verificá tu conexión a internet.",
-      "invalid_auth": "Credenciales inválidas. Verificá tu Client ID y Client Secret.",
-      "unknown": "Error inesperado. Revisá los logs para más detalles."
+      "cannot_connect": "No se pudo conectar a la API.",
+      "invalid_auth": "Credenciales inválidas.",
+      "unknown": "Error inesperado."
     },
     "abort": {
       "already_configured": "Esta cuenta ya está configurada."
